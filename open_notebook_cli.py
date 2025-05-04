@@ -433,7 +433,10 @@ Examples:
         return result
     
     def add_text_source(self, args):
-        """Add a text source to a notebook"""
+        """Add a text source to a notebook
+        
+        Supports the --transform parameter to apply standard transformations and automatically enable embedding.
+        """
         content_state = {
             'content': args.content,
             'title': args.title
@@ -477,11 +480,14 @@ Examples:
         return {
             'id': source.id,
             'title': source.title,
-            'embedded_chunks': source.embedded_chunks if args.embed else 0
+            'embedded_chunks': source.embedded_chunks if (args.embed or args.transform) else 0
         }
     
     def add_url_source(self, args):
-        """Add a URL source to a notebook"""
+        """Add a URL source to a notebook
+        
+        Supports the --transform parameter to apply standard transformations and automatically enable embedding.
+        """
         content_state = {
             'url': args.url
         }
@@ -801,27 +807,17 @@ Examples:
             if not args.json:
                 print(f"Applied transformation: {transformation.name} to source: {args.source_id}")
                 print(f"Output length: {len(output)} characters")
+                print(f"Generated insight: {transformation.title}")
+                print("\nOutput Preview:")
+                print(output[:500] + ('...' if len(output) > 500 else ''))
             
             return {
                 "transformation_id": args.transformation_id,
                 "transformation_name": transformation.name,
-                "output": output
+                "insight_type": transformation.title,
+                "output": output,
+                "output_preview": output[:500] + ('...' if len(output) > 500 else '')
             }
-        
-        if not args.json:
-            print(f"Applied transformation: {transformation.name}")
-            print(f"Source: {source.title or 'No Title'} ({source.id})")
-            print(f"Generated insight: {transformation.title}")
-            print("\nOutput:")
-            print(output[:500] + ('...' if len(output) > 500 else ''))
-        
-        return {
-            'source_id': source.id,
-            'transformation_id': transformation.id,
-            'transformation_name': transformation.name,
-            'insight_type': transformation.title,
-            'output_preview': output[:500] + ('...' if len(output) > 500 else '')
-        }
 
     # === CHAT SESSION COMMANDS ===
     
