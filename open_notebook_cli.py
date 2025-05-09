@@ -14,21 +14,13 @@ Run `python open_notebook_cli.py --help` for more information.
 import argparse
 import asyncio
 import json
-import sys
-from datetime import datetime
-from typing import Dict, List, Optional, Union
+import logging # Added
+from typing import List, Dict, Any, Optional # Added for type hints
 
-# Import Open Notebook modules
-from open_notebook.domain.notebook import (
-    Asset, ChatSession, Note, Notebook, Source, SourceInsight, 
-    text_search, vector_search
-)
-from open_notebook.domain.transformation import Transformation
+from open_notebook.database.repository import Notebook, Source, Note, Transformation, SourceInsight, ChatSession, PodcastTemplate, PodcastEpisode
 from open_notebook.graphs.source import source_graph
-from open_notebook.graphs.transformation import graph as transform_graph
-from open_notebook.plugins.podcasts import PodcastConfig, PodcastEpisode
-from open_notebook.utils import surreal_clean
-
+from open_notebook.graphs.transformation import transform_graph
+from open_notebook.config import config
 
 class OpenNotebookCLI:
     """Command-line interface for Open Notebook"""
@@ -43,6 +35,9 @@ class OpenNotebookCLI:
             "transformation:peilrk93qprsggk4pck4",
             "transformation:9d74z8nhwml1c9zi04ng"
         ]
+        # Configure logging
+        self.logger = logging.getLogger(__name__)
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     def _create_parser(self) -> argparse.ArgumentParser:
         """Create the argument parser with all commands and options"""
@@ -227,6 +222,8 @@ Examples:
         """Parse arguments and execute the command"""
         args = self.parser.parse_args()
         
+        self.logger.info(f"CLI command '{args.command}' invoked with arguments: {vars(args)}")
+
         if not args.command:
             self.parser.print_help()
             return
@@ -235,8 +232,16 @@ Examples:
         method_name = args.command.replace('-', '_')
         if hasattr(self, method_name):
             method = getattr(self, method_name)
-            result = method(args)
-            
+            try:
+                result = method(args)
+            except Exception as e:
+                self.logger.error(f"Error executing command {args.command}: {e}", exc_info=True)
+                if args.json:
+                    print(json.dumps({"error": str(e), "command": args.command}, indent=2))
+                else:
+                    print(f"Error: {e}")
+                return
+
             # Output the result as JSON if requested
             if args.json and result is not None:
                 print(json.dumps(result, default=str, indent=2))
@@ -246,11 +251,12 @@ Examples:
 
     # === NOTEBOOK COMMANDS ===
     
-    def list_notebooks(self, args):
-        """List all notebooks"""
-        notebooks = Notebook.get_all(order_by=args.order_by)
+    def _list_notebooks_logic(self, order_by: str, include_archived: bool) -> List[Dict[str, Any]]:
+        """Logic for listing notebooks."""
+        self.logger.info(f"Fetching notebooks with order_by='{order_by}', include_archived={include_archived}")
+        notebooks = Notebook.get_all(order_by=order_by)
         
-        if not args.include_archived:
+        if not include_archived:
             notebooks = [nb for nb in notebooks if not nb.archived]
         
         result = []
@@ -263,12 +269,22 @@ Examples:
                 'updated': nb.updated,
                 'archived': nb.archived
             })
+        self.logger.info(f"Found {len(result)} notebooks.")
+        return result
+
+    def list_notebooks(self, args):
+        """List all notebooks"""
+        result = self._list_notebooks_logic(order_by=args.order_by, include_archived=args.include_archived)
             
-            if not args.json:
-                print(f"{nb.id}: {nb.name}")
-                print(f"  Description: {nb.description}")
-                print(f"  Created: {nb.created}, Updated: {nb.updated}")
-                if nb.archived:
+        if not args.json:
+            if not result:
+                print("No notebooks found.")
+                return result
+            for nb_data in result:
+                print(f"{nb_data['id']}: {nb_data['name']}")
+                print(f"  Description: {nb_data['description']}")
+                print(f"  Created: {nb_data['created']}, Updated: {nb_data['updated']}")
+                if nb_data['archived']:
                     print("  [ARCHIVED]")
                 print()
         
@@ -304,9 +320,10 @@ Examples:
         
         return result
     
-    def create_notebook(self, args):
-        """Create a new notebook"""
-        notebook = Notebook(name=args.name, description=args.description)
+    def _create_notebook_logic(self, name: str, description: str) -> Dict[str, Any]:
+        """Logic for creating a new notebook."""
+        self.logger.info(f"Creating notebook with name='{name}'")
+        notebook = Notebook(name=name, description=description)
         notebook.save()
         
         result = {
@@ -315,11 +332,17 @@ Examples:
             'description': notebook.description,
             'created': notebook.created
         }
+        self.logger.info(f"Created notebook with ID: {notebook.id}")
+        return result
+
+    def create_notebook(self, args):
+        """Create a new notebook"""
+        result = self._create_notebook_logic(name=args.name, description=args.description)
         
         if not args.json:
-            print(f"Created notebook: {notebook.id}")
-            print(f"Name: {notebook.name}")
-            print(f"Description: {notebook.description}")
+            print(f"Created notebook: {result['id']}")
+            print(f"Name: {result['name']}")
+            print(f"Description: {result['description']}")
         
         return result
     
