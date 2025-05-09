@@ -35,6 +35,14 @@ class OpenNotebookCLI:
 
     def __init__(self):
         self.parser = self._create_parser()
+        self.standard_transformation_ids = [
+            "transformation:six06lwh4za956v8b53y",
+            "transformation:75oaeqdl73m3vk31sc66",
+            "transformation:q2g9i1ijrr37a9ubopku",
+            "transformation:5tvf3lsffw5onsh4eecr",
+            "transformation:peilrk93qprsggk4pck4",
+            "transformation:9d74z8nhwml1c9zi04ng"
+        ]
 
     def _create_parser(self) -> argparse.ArgumentParser:
         """Create the argument parser with all commands and options"""
@@ -100,6 +108,7 @@ Examples:
         add_text_source_parser.add_argument('content', help='Content of the source')
         add_text_source_parser.add_argument('--embed', action='store_true', help='Generate embeddings for the source')
         add_text_source_parser.add_argument('--apply-transformations', nargs='*', help='Apply transformations to the source')
+        add_text_source_parser.add_argument('--transform', action='store_true', help='Apply a standard set of transformations and automatically enable embedding')
         
         # Add URL source
         add_url_source_parser = subparsers.add_parser('add-url-source', help='Add a URL source to a notebook')
@@ -107,6 +116,7 @@ Examples:
         add_url_source_parser.add_argument('url', help='URL of the source')
         add_url_source_parser.add_argument('--embed', action='store_true', help='Generate embeddings for the source')
         add_url_source_parser.add_argument('--apply-transformations', nargs='*', help='Apply transformations to the source')
+        add_url_source_parser.add_argument('--transform', action='store_true', help='Apply a standard set of transformations and automatically enable embedding')
         
         # Generate embeddings
         embed_source_parser = subparsers.add_parser('embed-source', help='Generate embeddings for a source')
@@ -155,7 +165,9 @@ Examples:
         # Apply transformation
         apply_transformation_parser = subparsers.add_parser('apply-transformation', help='Apply a transformation to a source')
         apply_transformation_parser.add_argument('source_id', help='ID of the source')
-        apply_transformation_parser.add_argument('transformation_id', help='ID of the transformation')
+        apply_transformation_parser.add_argument('transformation_id', nargs='?', help='ID of the transformation')
+        apply_transformation_parser.add_argument('--transform', action='store_true', 
+                                               help='Apply all standard transformations and automatically enable embedding')
         
         # === CHAT SESSION COMMANDS ===
         
@@ -428,7 +440,13 @@ Examples:
         }
         
         apply_transformations = []
-        if args.apply_transformations:
+        if args.transform:
+            # Use standard transformation IDs
+            for t_id in self.standard_transformation_ids:
+                transformation = Transformation.get(t_id)
+                if transformation:
+                    apply_transformations.append(transformation)
+        elif args.apply_transformations:
             for t_id in args.apply_transformations:
                 transformation = Transformation.get(t_id)
                 if transformation:
@@ -438,7 +456,7 @@ Examples:
             'content_state': content_state,
             'notebook_id': args.notebook_id,
             'apply_transformations': apply_transformations,
-            'embed': args.embed
+            'embed': args.embed or args.transform  # Automatically enable embed if transform is set
         }))
         
         source = result["source"]
@@ -446,9 +464,14 @@ Examples:
         if not args.json:
             print(f"Added text source: {source.id}")
             print(f"Title: {source.title}")
-            if args.embed:
+            
+            if args.embed or args.transform:
                 print(f"Embedded chunks: {source.embedded_chunks}")
-            if apply_transformations:
+            
+            if args.transform:
+                print(f"Applied {len(self.standard_transformation_ids)} standard transformations")
+                print("Use 'get-source --show-insights' to view the transformation results")
+            elif apply_transformations:
                 print(f"Applied {len(apply_transformations)} transformations")
         
         return {
@@ -464,7 +487,13 @@ Examples:
         }
         
         apply_transformations = []
-        if args.apply_transformations:
+        if args.transform:
+            # Use standard transformation IDs
+            for t_id in self.standard_transformation_ids:
+                transformation = Transformation.get(t_id)
+                if transformation:
+                    apply_transformations.append(transformation)
+        elif args.apply_transformations:
             for t_id in args.apply_transformations:
                 transformation = Transformation.get(t_id)
                 if transformation:
@@ -474,7 +503,7 @@ Examples:
             'content_state': content_state,
             'notebook_id': args.notebook_id,
             'apply_transformations': apply_transformations,
-            'embed': args.embed
+            'embed': args.embed or args.transform  # Automatically enable embed if transform is set
         }))
         
         source = result["source"]
@@ -483,16 +512,21 @@ Examples:
             print(f"Added URL source: {source.id}")
             print(f"Title: {source.title}")
             print(f"URL: {args.url}")
-            if args.embed:
+            
+            if args.embed or args.transform:
                 print(f"Embedded chunks: {source.embedded_chunks}")
-            if apply_transformations:
+            
+            if args.transform:
+                print(f"Applied {len(self.standard_transformation_ids)} standard transformations")
+                print("Use 'get-source --show-insights' to view the transformation results")
+            elif apply_transformations:
                 print(f"Applied {len(apply_transformations)} transformations")
         
         return {
             'id': source.id,
             'title': source.title,
             'url': args.url,
-            'embedded_chunks': source.embedded_chunks if args.embed else 0
+            'embedded_chunks': source.embedded_chunks if (args.embed or args.transform) else 0
         }
     
     def embed_source(self, args):
@@ -708,17 +742,71 @@ Examples:
             print(f"Source not found: {args.source_id}")
             return None
         
-        transformation = Transformation.get(args.transformation_id)
-        if not transformation:
-            print(f"Transformation not found: {args.transformation_id}")
-            return None
-        
-        result = asyncio.run(transform_graph.ainvoke(dict(
-            source=source, 
-            transformation=transformation
-        )))
-        
-        output = result.get("output", "")
+        if args.transform:
+            # Apply multiple standard transformations
+            results = []
+            if not args.json:
+                print(f"Applying {len(self.standard_transformation_ids)} standard transformations to source: {args.source_id}")
+                print("This may take a few minutes...")
+            
+            for t_id in self.standard_transformation_ids:
+                transformation = Transformation.get(t_id)
+                if not transformation:
+                    print(f"Transformation not found: {t_id}")
+                    continue
+                
+                result = asyncio.run(transform_graph.ainvoke(dict(
+                    source=source, 
+                    transformation=transformation
+                )))
+                
+                output = result.get("output", "")
+                results.append({
+                    "transformation_id": t_id,
+                    "transformation_name": transformation.name,
+                    "output": output
+                })
+                
+                if not args.json:
+                    print(f"✓ Applied: {transformation.name}")
+            
+            if not args.json:
+                print(f"Completed {len(results)} transformations on source: {args.source_id}")
+            
+            # Also embed the source if transform flag is set
+            if not source.embedded_chunks:
+                if not args.json:
+                    print("Generating embeddings for source...")
+                self.embed_source(args)
+            
+            return results
+        else:
+            # Apply a single transformation
+            if not args.transformation_id:
+                print("Error: transformation_id is required when --transform is not specified")
+                return None
+                
+            transformation = Transformation.get(args.transformation_id)
+            if not transformation:
+                print(f"Transformation not found: {args.transformation_id}")
+                return None
+            
+            result = asyncio.run(transform_graph.ainvoke(dict(
+                source=source, 
+                transformation=transformation
+            )))
+            
+            output = result.get("output", "")
+            
+            if not args.json:
+                print(f"Applied transformation: {transformation.name} to source: {args.source_id}")
+                print(f"Output length: {len(output)} characters")
+            
+            return {
+                "transformation_id": args.transformation_id,
+                "transformation_name": transformation.name,
+                "output": output
+            }
         
         if not args.json:
             print(f"Applied transformation: {transformation.name}")
