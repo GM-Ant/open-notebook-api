@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+pydantic
+# Add other dependencies from open_notebook_cli.py if they are not already covered
+# For example, if open_notebook_cli.py uses 'requests', 'numpy', etc., add them here.
+# Assuming open_notebook_cli.py and its dependencies are part of the same project environment
+# and will be available when the Docker image is built or when run locally.
+# We need to ensure that any libraries imported by open_notebook_cli.py are listed here
+# or in the main project's pyproject.toml / requirements.txt if it's shared.
+
+# Based on the provided context, open_notebook_cli.py seems to be a standalone script
+# that might import from other local modules (e.g., open_notebook.domain.models.Notebook).
+# Ensure these are correctly packaged or available in the PYTHONPATH.
+
+# For now, this is minimal for the API itself.
+# Dependencies of open_notebook_cli.py must be handled by the project setup.

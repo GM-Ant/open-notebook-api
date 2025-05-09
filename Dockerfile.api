@@ -1,0 +1,27 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install system dependencies that might be needed by Python packages
+# (e.g., for database connectors or image processing libraries)
+# Example: RUN apt-get update && apt-get install -y libpq-dev gcc
+
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application code
+COPY . .
+
+# Ensure the open_notebook_cli.py and other necessary modules are in PYTHONPATH
+# If your project structure is flat (api_main.py, open_notebook_cli.py in /app), this is usually fine.
+# If open_notebook_cli is part of a package, ensure the structure is correct, e.g.:
+# COPY open_notebook /app/open_notebook
+ENV PYTHONPATH=/app
+
+# Expose the port the API will run on
+EXPOSE 8000
+
+# Command to run the FastAPI application using Uvicorn
+# Ensure api_main.py is at the root of /app or adjust the path
+CMD ["uvicorn", "api_main:app", "--host", "0.0.0.0", "--port", "8000"]
