@@ -1,0 +1,77 @@
+{
+  "info": {
+    "name": "Open Notebook API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Get All Tools",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/tools",
+          "host": ["{{base_url}}"],
+          "path": ["tools"]
+        }
+      }
+    },
+    {
+      "name": "Get Single Tool",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/tools/:tool_name",
+          "host": ["{{base_url}}"],
+          "path": ["tools", ":tool_name"],
+          "variable": [
+            {
+              "key": "tool_name",
+              "value": "list-notebooks"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Execute CLI Command",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"command\": \"create-notebook\",\n  \"args\": {\n    \"name\": \"My Notebook\",\n    \"description\": \"Test notebook\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/cli",
+          "host": ["{{base_url}}"],
+          "path": ["cli"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    }
+  ]
+}

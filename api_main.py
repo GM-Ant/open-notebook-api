@@ -6,6 +6,8 @@ import logging
 import sys
 import os
 from argparse import Namespace
+from open_notebook.tool_registry import ToolRegistry, ToolSchema, ParameterSchema
+from fastapi.responses import JSONResponse
 
 # Attempt to import the CLI class and necessary setup functions
 # This assumes 'open_notebook_cli.py' is in the PYTHONPATH or same directory,
@@ -135,6 +137,48 @@ async def health_check():
     # if not cli_instance or not hasattr(cli_instance, 'parser'):
     #    return {"status": "degraded", "message": "CLI backend not fully initialized."}
     return {"status": "ok", "message": "API is running"}
+
+@app.get("/tools",
+         summary="Get all tool schemas",
+         response_model=List[ToolSchema],
+         response_description="List of all available tool schemas")
+async def get_all_tools():
+    """Returns all registered tool schemas in OpenAI-compatible format"""
+    try:
+        registry = ToolRegistry()
+        return registry.get_all_tools()
+    except Exception as e:
+        logger.error(f"Error getting tool schemas: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve tool schemas"
+        )
+
+@app.get("/tools/{tool_name}",
+         summary="Get specific tool schema",
+         response_model=ToolSchema,
+         response_description="Requested tool schema")
+async def get_tool(tool_name: str):
+    """Returns a specific tool schema by name"""
+    try:
+        registry = ToolRegistry()
+        return registry.get_tool(tool_name)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except KeyError as e:
+        raise HTTPException(
+            status_code=404,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error getting tool {tool_name}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve tool {tool_name}"
+        )
 
 # To run this app (save as api_main.py):
 # uvicorn api_main:app --reload

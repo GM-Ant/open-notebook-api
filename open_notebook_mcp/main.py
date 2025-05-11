@@ -1,5 +1,7 @@
+import logging
 from fastapi import FastAPI, HTTPException
 from open_notebook.tool_registry import tool_registry
+from open_notebook.tool_reflector import CLIInspector
 
 app = FastAPI(
     title="Open Notebook MCP Server",
@@ -8,9 +10,16 @@ app = FastAPI(
 )
 
 @app.on_event("startup")
-async def startup_event():
-    """Initialize the tool registry on application startup"""
-    tool_registry.load_tools()
+async def load_tool_schemas():
+    """Initialize tool registry by loading CLI commands"""
+    try:
+        inspector = CLIInspector()
+        commands = inspector.load_commands_from_file("open_notebook_cli.py")
+        tool_registry.load_tools(commands)
+        logging.info(f"Successfully loaded {len(commands)} tools")
+    except Exception as e:
+        logging.error(f"Failed to load tool schemas: {str(e)}")
+        raise
 
 @app.get("/")
 async def read_root():
@@ -18,7 +27,16 @@ async def read_root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok"}
+    """Enhanced healthcheck that verifies registry initialization"""
+    if not tool_registry.is_initialized():
+        raise HTTPException(
+            status_code=503,
+            detail="Tool registry not initialized"
+        )
+    return {
+        "status": "ok",
+        "tools_loaded": len(tool_registry.get_all_tools_dict())
+    }
 
 @app.get("/tools")
 async def list_tools():

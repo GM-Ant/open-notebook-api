@@ -1931,6 +1931,88 @@ GET /podcast-episodes/ep:1/transcript?format=json
 
 ### Delete Podcast Episode
 
+---
+
+## Tools API
+
+### Get All Tools
+`GET /tools`
+
+Returns a list of all available tools.
+
+**Example Request:**
+```bash
+./examples/api-calls/get_all_tools.sh
+```
+
+**Example Response:**
+```json
+{
+  "tools": [
+    {
+      "name": "list-notebooks",
+      "description": "List all notebooks",
+      "parameters": {}
+    }
+  ]
+}
+```
+
+### Get Single Tool
+`GET /tools/{name}`
+
+Returns details about a specific tool.
+
+**Example Request:**
+```bash
+./examples/api-calls/get_single_tool.sh list-notebooks
+```
+
+**Example Response:**
+```json
+{
+  "name": "list-notebooks",
+  "description": "List all notebooks",
+  "parameters": {}
+}
+```
+
+### Health Check
+`GET /health`
+
+Returns the health status of the API.
+
+**Example Request:**
+```bash
+./examples/api-calls/healthcheck.sh
+```
+
+**Example Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-05-11T17:48:08Z"
+}
+```
+
+## Error Cases
+
+Common error responses:
+
+- `400 Bad Request`: Invalid input parameters
+- `404 Not Found`: Resource not found
+- `500 Internal Server Error`: Server error
+
+**Example Error Testing:**
+```bash
+./examples/api-calls/error_case_examples.sh
+```
+
+## Postman Collection
+
+A Postman collection is available at:
+`examples/api-calls/postman_collection.json`
+
 Deletes a podcast episode.
 
 **Endpoint:** `DELETE /podcast-episodes/{episode_id}`  
