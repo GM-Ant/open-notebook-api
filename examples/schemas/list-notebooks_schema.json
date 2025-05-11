@@ -1,0 +1,24 @@
+{
+  "name": "list-notebooks",
+  "description": "Execute the list-notebooks command",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "include_archived": {
+        "type": "boolean",
+        "description": "Include archived notebooks",
+        "enum": null,
+        "default": false,
+        "items": null
+      },
+      "order_by": {
+        "type": "string",
+        "description": "Order by field (e.g., \"name asc\", \"created desc\")",
+        "enum": null,
+        "default": "created desc",
+        "items": null
+      }
+    },
+    "required": []
+  }
+}

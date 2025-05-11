@@ -1,0 +1,40 @@
+{
+  "name": "text-search",
+  "description": "Execute the text-search command",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "Search query",
+        "enum": null,
+        "default": null,
+        "items": null
+      },
+      "results": {
+        "type": "integer",
+        "description": "Number of results to return",
+        "enum": null,
+        "default": 10,
+        "items": null
+      },
+      "source": {
+        "type": "boolean",
+        "description": "Exclude sources from search results",
+        "enum": null,
+        "default": true,
+        "items": null
+      },
+      "note": {
+        "type": "boolean",
+        "description": "Exclude notes from search results",
+        "enum": null,
+        "default": true,
+        "items": null
+      }
+    },
+    "required": [
+      "query"
+    ]
+  }
+}

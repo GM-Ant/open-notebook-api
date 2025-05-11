@@ -1,0 +1,50 @@
+{
+  "name": "add-url-source",
+  "description": "Execute the add-url-source command",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "notebook_id": {
+        "type": "string",
+        "description": "ID of the notebook",
+        "enum": null,
+        "default": null,
+        "items": null
+      },
+      "url": {
+        "type": "string",
+        "description": "URL of the source",
+        "enum": null,
+        "default": null,
+        "items": null
+      },
+      "embed": {
+        "type": "boolean",
+        "description": "Generate embeddings for the source",
+        "enum": null,
+        "default": false,
+        "items": null
+      },
+      "apply_transformations": {
+        "type": "array",
+        "description": "List of transformation IDs to apply",
+        "enum": null,
+        "default": null,
+        "items": {
+          "type": "string"
+        }
+      },
+      "transform": {
+        "type": "boolean",
+        "description": "Apply standard transformations",
+        "enum": null,
+        "default": false,
+        "items": null
+      }
+    },
+    "required": [
+      "notebook_id",
+      "url"
+    ]
+  }
+}

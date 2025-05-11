@@ -12,6 +12,7 @@ from argparse import Namespace
 # and has been refactored as discussed (e.g., if __name__ == "__main__" block).
 try:
     from open_notebook_cli import OpenNotebookCLI
+    from open_notebook.tool_reflector import CLIInspector  # Import for Phase 2 integration
     # If your CLI or its underlying models need explicit initialization (e.g., DB connection):
     # from open_notebook.config import load_config
     # from open_notebook.database.repository import init_db_from_config
