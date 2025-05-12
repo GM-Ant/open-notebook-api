@@ -53,8 +53,10 @@ dependencies = [
 ]
 
 [tool.setuptools]
-package-dir = {"open_notebook" = "src/open_notebook"}
-
+# Explicitly state that packages are directly under the root project directory,
+# not in a 'src' subdirectory. This helps resolve issues with editable installs
+# where setuptools might incorrectly assume a src-layout.
+package-dir = {"" = "."}
 
 [project.optional-dependencies]
 dev = [
