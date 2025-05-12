@@ -23,10 +23,18 @@ COPY pyproject.toml /app/pyproject.toml
 COPY ./open_notebook /app/open_notebook
 COPY ./open_notebook_mcp /app/open_notebook_mcp
 COPY ./open_notebook_cli.py /app/open_notebook_cli.py
+COPY ./requirements-cli.txt /app/requirements-cli.txt
 RUN chmod +x /app/open_notebook_cli.py
+
+# Install CLI dependencies
+RUN pip install -r /app/requirements-cli.txt
 
 # Install MCP server dependencies
 RUN uv pip install fastapi "uvicorn[standard]" pydantic
+
+# Attempt to remove any pre-existing open-notebook from the base image's venv
+# This is to ensure our local editable install takes full precedence and avoids conflicts.
+RUN uv pip uninstall -y open-notebook || echo "Attempted to uninstall open-notebook, continuing..."
 
 # Install the open-notebook package in development mode
 RUN cd /app && uv pip install -e .

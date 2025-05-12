@@ -1,0 +1,5 @@
+# Override file to exclude the sequential_thinking_mcp_service
+services:
+  sequential_thinking_mcp_service:
+    profiles:
+      - "none"  # This ensures the service is not included in any profile
