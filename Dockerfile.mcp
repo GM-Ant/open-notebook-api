@@ -1,0 +1,52 @@
+# Extending the base open_notebook image with MCP server
+FROM lfnovo/open_notebook:latest
+
+# Set environment variable to control MCP server activation
+ENV ENABLE_MCP_SERVER=false \
+    MCP_SERVER_PORT=8001 \
+    PYTHONPATH=/app
+
+# Install system dependencies required for the MCP server
+RUN apt-get update && apt-get install -y \
+    supervisor \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory
+WORKDIR /app
+
+# Copy necessary files for package installation
+COPY setup.py /app/setup.py
+COPY pyproject.toml /app/pyproject.toml
+
+# Copy packages
+COPY ./open_notebook /app/open_notebook
+COPY ./open_notebook_mcp /app/open_notebook_mcp
+COPY ./open_notebook_cli.py /app/open_notebook_cli.py
+RUN chmod +x /app/open_notebook_cli.py
+
+# Install MCP server dependencies
+RUN uv pip install fastapi "uvicorn[standard]" pydantic
+
+# Install the open-notebook package in development mode
+RUN cd /app && uv pip install -e .
+
+# Create a debug script to verify installations
+COPY ./debug_mcp_imports.py /app/debug_mcp_imports.py
+RUN chmod +x /app/debug_mcp_imports.py
+RUN cd /app && python /app/debug_mcp_imports.py > /app/debug_output.log 2>&1 || echo "Debug completed with issues"
+
+# Set up supervisord configuration
+COPY ./supervisord.mcp.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Create a startup script to conditionally start services
+COPY ./start_services.sh /app/start_services.sh
+RUN chmod +x /app/start_services.sh
+
+# Expose ports for both services
+# 8502 - Open Notebook Streamlit app (already exposed in base image)
+# 8001 - MCP Server (new port to avoid conflict with SurrealDB which uses 8000)
+EXPOSE 8502 8001
+
+# Use the startup script as entrypoint
+ENTRYPOINT ["/app/start_services.sh"]

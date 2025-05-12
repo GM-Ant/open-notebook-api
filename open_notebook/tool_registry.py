@@ -49,15 +49,20 @@ class ToolRegistry:
             self._cli_inspector = CLIInspector()
             self._initialized = True
 
-    def load_tools(self) -> None:
+    def load_tools(self, tools=None) -> None:
         """
-        Loads all CLI command schemas using CLIInspector and populates the registry.
-        Handles errors during schema generation.
+        Loads tool schemas into the registry.
+        
+        Args:
+            tools: Optional dict of pre-generated tool schemas. If None, generates all schemas from CLI.
         """
         logger.info("Loading tool schemas...")
         try:
-            schemas = self._cli_inspector.generate_all_schemas()
-            self._tools = schemas
+            if tools is not None:
+                self._tools = tools
+            else:
+                schemas = self._cli_inspector.generate_all_schemas()
+                self._tools = schemas
             logger.info(f"Successfully loaded {len(self._tools)} tool schemas.")
         except Exception as e:
             logger.error(f"Error loading tool schemas: {e}", exc_info=True)
@@ -95,6 +100,65 @@ class ToolRegistry:
     def get_all_tools_dict(self) -> Dict[str, ToolSpec]:
         """Retrieves all tool schemas as a dictionary."""
         return self._tools
+        
+    def execute_tool(self, tool_name: str, params: dict) -> str:
+        """
+        Execute a tool by name with the provided parameters.
+        
+        Args:
+            tool_name: The name of the tool to execute
+            params: The parameters to pass to the tool
+            
+        Returns:
+            The output of the tool execution
+            
+        Raises:
+            ValueError: If the tool registry is not initialized
+            KeyError: If the tool name is not found
+            RuntimeError: If the tool execution fails
+        """
+        import subprocess
+        import json
+        
+        if not self._tools:
+            raise ValueError("Tool registry not initialized - call load_tools() first")
+        
+        if tool_name not in self._tools:
+            raise KeyError(f"Tool {tool_name} not found in registry")
+        
+        # Construct the command to execute the CLI
+        cmd = ["python", "open_notebook_cli.py", tool_name]
+        
+        # Add parameters as CLI arguments
+        for param_name, param_value in params.items():
+            if param_value is not None:
+                # Handle boolean flags specially
+                if isinstance(param_value, bool):
+                    if param_value:
+                        cmd.append(f"--{param_name}")
+                # Handle arrays specially
+                elif isinstance(param_value, list):
+                    cmd.append(f"--{param_name}")
+                    for item in param_value:
+                        cmd.append(str(item))
+                # Handle regular parameters
+                else:
+                    cmd.append(f"--{param_name}")
+                    cmd.append(str(param_value))
+        
+        logger.info(f"Executing tool: {' '.join(cmd)}")
+        
+        try:
+            result = subprocess.run(
+                cmd,
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            return result.stdout.strip()
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Tool execution failed: {e}, stderr: {e.stderr}")
+            raise RuntimeError(f"Tool execution failed: {e.stderr}")
 
 
 # Module-level instance for singleton behavior
