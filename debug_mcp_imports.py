@@ -1,53 +1,70 @@
 # filepath: /Users/gregory/localcode/open-notebook/debug_mcp_imports.py
 import os
 import sys
+import traceback
 
-print("--- MCP Debug Import Script ---")
+print("--- Python Environment ---")
 print(f"Python version: {sys.version}")
+print(f"sys.path: {sys.path}")
 print(f"PYTHONPATH: {os.environ.get('PYTHONPATH')}")
+print(f"Current working directory: {os.getcwd()}")
 
-# Print relevant environment variables
 print("\n--- Environment Variables ---")
-RELEVANT_VARS = [
-    "SURREAL_ADDRESS", "SURREAL_USER", "SURREAL_PASSWORD",
-    "SURREAL_NAMESPACE", "SURREAL_DATABASE", "ENABLE_MCP_SERVER",
-    "MCP_SERVER_PORT"
+relevant_vars = [
+    'ENABLE_MCP_SERVER', 'PYTHONPATH', 'SURREAL_ADDRESS', 'SURREAL_USER',
+    'SURREAL_PASSWORD', 'SURREAL_NAMESPACE', 'SURREAL_DATABASE', 'SURREAL_SCOPE',
+    'OPENAI_API_KEY', 'LOG_LEVEL'
 ]
-for var in RELEVANT_VARS:
+for var in relevant_vars:
     print(f"{var}: {os.environ.get(var)}")
 
-print("\n--- Attempting Imports ---")
+print("\n--- Attempting to import open_notebook ---")
 try:
-    from open_notebook.database import repository
-    print("[SUCCESS] Imported open_notebook.database.repository")
-
-    # Attempt to instantiate or use the repository to trigger env var checks
-    # This depends on how repository.py is structured.
-    # If SurrealRepository is a class that takes config from env vars in __init__:
-    if hasattr(repository, 'SurrealRepository'):
-        print("Attempting to instantiate SurrealRepository...")
-        repo_instance = repository.SurrealRepository()
-        print("[SUCCESS] Instantiated SurrealRepository.")
-        # You might want to call a connect method if it exists and is separate
-        # if hasattr(repo_instance, 'connect'):
-        #     print("Attempting to connect...")
-        #     repo_instance.connect() # This might raise the KeyError if not handled
-        #     print("[SUCCESS] Connection method called.")
-    else:
-        print("[INFO] SurrealRepository class not found directly under repository module. Initialization check might be different.")
-
-except ImportError as e:
-    print(f"[ERROR] ImportError: {e}")
-    print("Please check PYTHONPATH and ensure the package is installed correctly.")
-except KeyError as e:
-    print(f"[ERROR] KeyError: {e}")
-    print("This usually means a required environment variable for database connection is missing.")
-    print("Please ensure all SURREAL_* environment variables are set correctly when running the container.")
+    import open_notebook
+    print("Successfully imported 'open_notebook'")
+    print(f"open_notebook location: {open_notebook.__file__}")
 except Exception as e:
-    print(f"[ERROR] An unexpected error occurred: {e}")
-    import traceback
+    print(f"ERROR importing 'open_notebook': {e}")
     traceback.print_exc()
-else:
-    print("\n--- Imports and Initial Checks Potentially Successful ---")
 
-print("\n--- MCP Debug Script Finished ---")
+print("\n--- Attempting to import open_notebook.tool_registry ---")
+try:
+    from open_notebook import tool_registry
+    print("Successfully imported 'open_notebook.tool_registry'")
+    print(f"tool_registry location: {tool_registry.__file__}")
+except Exception as e:
+    print(f"ERROR importing 'open_notebook.tool_registry': {e}")
+    traceback.print_exc()
+
+print("\n--- Attempting to import open_notebook_mcp ---")
+try:
+    import open_notebook_mcp
+    print("Successfully imported 'open_notebook_mcp'")
+    print(f"open_notebook_mcp location: {open_notebook_mcp.__file__}")
+except Exception as e:
+    print(f"ERROR importing 'open_notebook_mcp': {e}")
+    traceback.print_exc()
+
+print("\n--- Attempting to import open_notebook_mcp.main ---")
+try:
+    from open_notebook_mcp import main as mcp_main
+    print("Successfully imported 'open_notebook_mcp.main'")
+    print(f"mcp_main location: {mcp_main.__file__}")
+except Exception as e:
+    print(f"ERROR importing 'open_notebook_mcp.main': {e}")
+    traceback.print_exc()
+
+print("\n--- Checking for FastAPI and Uvicorn ---")
+try:
+    import fastapi
+    import uvicorn # type: ignore
+    print("FastAPI and Uvicorn are available.")
+    print(f"FastAPI version: {fastapi.__version__}")
+    print(f"Uvicorn version: {uvicorn.__version__}")
+except ImportError as e:
+    print(f"ERROR: FastAPI or Uvicorn not found: {e}")
+except Exception as e:
+    print(f"UNEXPECTED ERROR checking FastAPI/Uvicorn: {e}")
+    traceback.print_exc()
+
+print("\n--- Debug script finished ---")

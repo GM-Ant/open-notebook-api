@@ -18,17 +18,17 @@ if [ $? -ne 0 ]; then
 fi
 
 # Get debug output from the container
-echo -e "\nRunning debug container to get diagnostic information..."
-docker run --rm --name mcp_debug -e ENABLE_MCP_SERVER=true open_notebook_mcp:latest python /app/debug_mcp_imports.py > mcp_debug_output.log
+echo -e "\\nRunning debug container to get diagnostic information..."
+docker run --rm --name mcp_debug --env-file docker.env -e ENABLE_MCP_SERVER=true open_notebook_mcp:latest python /app/debug_mcp_imports.py > mcp_debug_output.log
 
-echo -e "\nDebug output saved to mcp_debug_output.log"
+echo -e "\\nDebug output saved to mcp_debug_output.log"
 echo -e "Top 10 lines of debug output:"
 head -n 10 mcp_debug_output.log
 echo -e "..."
 
 # Test 1: Check if the MCP server is running when enabled
-echo -e "\nTest 1: Checking if MCP server is running when enabled..."
-docker run --rm -d --name mcp_test_enabled -p 8502:8502 -p 8001:8001 -e ENABLE_MCP_SERVER=true open_notebook_mcp:latest
+echo -e "\\nTest 1: Checking if MCP server is running when enabled..."
+docker run --rm -d --name mcp_test_enabled --env-file docker.env -p 8502:8502 -p 8001:8001 -e ENABLE_MCP_SERVER=true open_notebook_mcp:latest
 sleep 15 # Wait for services to start
 
 # Show container logs for debugging
@@ -51,16 +51,16 @@ else
     docker logs mcp_test_enabled
     
     # Try to connect to the container and debug
-    echo -e "\nAttempting to debug inside the container..."
-    docker exec -it mcp_test_enabled bash -c "cd /app && python debug_mcp_imports.py" || echo "Could not run debug script in container"
+    echo -e "\\nAttempting to debug inside the container..."
+    docker exec -it mcp_test_enabled bash -c "source /app/docker.env && cd /app && python debug_mcp_imports.py" || echo "Could not run debug script in container"
 fi
 
 # Stop the container
 docker stop mcp_test_enabled
 
 # Test 2: Check if the MCP server is NOT running when disabled
-echo -e "\nTest 2: Checking if MCP server is not running when disabled..."
-docker run --rm -d --name mcp_test_disabled -p 8502:8502 -p 8001:8001 -e ENABLE_MCP_SERVER=false open_notebook_mcp:latest
+echo -e "\\nTest 2: Checking if MCP server is not running when disabled..."
+docker run --rm -d --name mcp_test_disabled --env-file docker.env -p 8502:8502 -p 8001:8001 -e ENABLE_MCP_SERVER=false open_notebook_mcp:latest
 sleep 10 # Wait for services to start
 
 # Check if the MCP server is not responding
@@ -74,8 +74,8 @@ fi
 docker stop mcp_test_disabled
 
 # Test 3: Check if the notebook is still accessible when MCP server is enabled
-echo -e "\nTest 3: Checking if notebook is accessible when MCP server is enabled..."
-docker run --rm -d --name mcp_test_notebook -p 8502:8502 -p 8001:8001 -e ENABLE_MCP_SERVER=true open_notebook_mcp:latest
+echo -e "\\nTest 3: Checking if notebook is accessible when MCP server is enabled..."
+docker run --rm -d --name mcp_test_notebook --env-file docker.env -p 8502:8502 -p 8001:8001 -e ENABLE_MCP_SERVER=true open_notebook_mcp:latest
 sleep 10 # Wait for services to start
 
 # Check if the notebook is responding
@@ -93,7 +93,7 @@ echo -e "\nTest Summary"
 echo -e "==============="
 echo -e "The test script has completed. If any tests failed, check the logs above for details."
 echo -e "You can also run a container interactively for debugging purposes:"
-echo -e "docker run --rm -it -p 8502:8502 -p 8001:8001 -e ENABLE_MCP_SERVER=true open_notebook_mcp:latest bash"
+echo -e "docker run --rm -it --env-file docker.env -p 8502:8502 -p 8001:8001 -e ENABLE_MCP_SERVER=true open_notebook_mcp:latest bash"
 
 # Test 4: Check if the CLI integration is working through the MCP server
 echo -e "\nTest 4: Testing CLI integration through MCP server..."
